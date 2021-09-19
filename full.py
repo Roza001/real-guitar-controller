@@ -1,21 +1,19 @@
-## NoteTrainer - by Alan Smith ##
-#https://github.com/Virtualan/musical-note-trainer/blob/master/NoteTrainer.py
-
 import math
 import pyaudio
 from random import * 
 import numpy
 from scipy.signal import fftconvolve
 from numpy import argmax, diff
-from pynput.keyboard import Key, Controller
+import pyautogui
 
-# See http://www.swharden.com/blog/2013-05-09-realtime-fft-audio-visualization-with-python/
 class SoundRecorder:
         
     def __init__(self):
         self.RATE=48000
-        self.BUFFERSIZE=3072 #1024 is a good buffer size 3072 works for Pi
-        self.secToRecord=.05
+        #self.BUFFERSIZE=3072 #1024 is a good buffer size 3072 works for Pi
+        self.BUFFERSIZE=3072
+        #self.secToRecord=.05
+        self.secToRecord=.005
         self.threadsDieNow=False
         self.newAudio=False
         
@@ -151,7 +149,6 @@ tunerNotes = build_default_tuner_range()
 frequencies = numpy.array(sorted(tunerNotes.keys()))
 
 #controller setup
-keyboard = Controller()
 currentKey = "0"
 
         
@@ -175,31 +172,22 @@ while 1:
         inputnote == 0
                     
     SR.close()
-
-    if inputnote > frequencies[len(tunerNotes)-1]:                        #### not interested in notes above the notes list
-        keyboard.release(currentKey) 
-        currentKey = '0'
-        continue
-                    
-    if inputnote < frequencies[0]:                                        #### not interested in notes below the notes list
-        keyboard.release(currentKey) 
-        currentKey = '0'
-        continue    
-                        
-    if signal_level > soundgate:                                           #### basic noise gate to stop it guessing ambient noises
-        keyboard.release(currentKey)   
-        currentKey = '0'
-        continue
+    
+    if (inputnote > frequencies[len(tunerNotes)-1]) or (inputnote < frequencies[0]) or (signal_level > soundgate):    # not interested in notes above or below the notes list
+        pyautogui.keyUp(currentKey)                                                                                     # and basic noise gate to stop it guessing ambient noises
+        currentKey = '0'                                                                                                
+        continue                                                 
                 
                 
     targetnote = closest_value_index(frequencies, round(inputnote, 2))      #### find the closest note in the keyed array
-            
-    #print(str(tunerNotes[frequencies[targetnote]]))     
-    if currentKey != str(tunerNotes[frequencies[targetnote]]) :
+
+    #what to do when a note is detected           
+    if currentKey != str(tunerNotes[frequencies[targetnote]]) : #check if current note is different than last - so we can play long notes
+        pyautogui.keyUp(currentKey)
         currentKey = str(tunerNotes[frequencies[targetnote]])
-        if currentKey != 'q':
-            keyboard.press(currentKey)         
-        keyboard.press('q') #strum down  
-        keyboard.release('q')        
+        if currentKey != 'q':                                   
+            pyautogui.keyDown(currentKey)         
+        pyautogui.keyDown('q') #strum down                      # the strum key is pressed with each note detected
+        pyautogui.keyUp('q')        
                     
 
